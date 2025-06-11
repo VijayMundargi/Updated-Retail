@@ -30,13 +30,17 @@ export async function getProductsAction(): Promise<Product[]> {
 
 export async function addProductAction(productData: Omit<Product, 'id' | 'userId'>): Promise<Product | { error: string }> {
   try {
-    const userId = await getCurrentUserId();
+    const userId = await getCurrentUserId(); // This will throw an error if user is not authenticated
+
+    // Log the userId being used for product creation for clarity
+    console.log(`Adding product for userId: ${userId}`);
+
     const productsCollection = await getProductsCollection();
     const productToInsert = {
         ...productData,
         price: Number(productData.price),
         stock: Number(productData.stock),
-        userId, // Add userId
+        userId, // Assigns the dynamically retrieved userId
     };
     const result = await productsCollection.insertOne(productToInsert);
     const newProduct = mongoDocToProduct({ _id: result.insertedId, ...productToInsert});
@@ -60,6 +64,10 @@ export async function addProductAction(productData: Omit<Product, 'id' | 'userId
     let errorMessage = 'Failed to add product. Check server logs for more details.';
     if (error instanceof Error) {
         errorMessage = `Failed to add product: ${error.message}`;
+    }
+    // If error message is about authentication, make it more user-friendly
+    if (error.message && (error.message.toLowerCase().includes('user not authenticated') || error.message.toLowerCase().includes('session invalid'))) {
+        errorMessage = 'User not authenticated. Please log in and try again.';
     }
     return { error: errorMessage };
   }
@@ -107,6 +115,9 @@ export async function updateProductAction(productId: string, productData: Partia
      if (error instanceof Error) {
         errorMessage = `Failed to update product: ${error.message}`;
     }
+    if (error.message && (error.message.toLowerCase().includes('user not authenticated') || error.message.toLowerCase().includes('session invalid'))) {
+        errorMessage = 'User not authenticated. Please log in and try again.';
+    }
     return { error: errorMessage };
   }
 }
@@ -130,6 +141,9 @@ export async function deleteProductAction(productId: string): Promise<{ success:
     let errorMessage = 'Failed to delete product. Check server logs for more details.';
     if (error instanceof Error) {
         errorMessage = `Failed to delete product: ${error.message}`;
+    }
+     if (error.message && (error.message.toLowerCase().includes('user not authenticated') || error.message.toLowerCase().includes('session invalid'))) {
+        errorMessage = 'User not authenticated. Please log in and try again.';
     }
     return { success: false, error: errorMessage };
   }
