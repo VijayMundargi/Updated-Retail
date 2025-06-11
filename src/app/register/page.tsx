@@ -16,9 +16,20 @@ import { APP_TITLE } from '@/lib/constants';
 import { registerUserAction } from './actions';
 import { Loader2 } from 'lucide-react';
 
+const allowedEmailDomains = [
+  'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 
+  'protonmail.com', 'proton.me', 'zoho.com', 'aol.com', 'gmx.com', 'yandex.com', 'mail.com'
+];
+
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.string().email({ message: "Invalid email address." }),
+  email: z.string().email({ message: "Invalid email address." })
+    .refine(email => {
+      const domain = email.substring(email.lastIndexOf('@') + 1);
+      return allowedEmailDomains.includes(domain.toLowerCase());
+    }, {
+      message: "Email provider not allowed. Please use a valid provider (e.g., Gmail, Outlook, Yahoo)."
+    }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string().min(6, { message: "Password must be at least 6 characters." }),
 }).refine(data => data.password === data.confirmPassword, {
